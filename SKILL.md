@@ -1,42 +1,61 @@
 ---
 name: tw-kahoot-skill
-description: Use when a teacher wants quiz content turned into a Kahoot spreadsheet-import-ready file — 產生 Kahoot 官方匯入試算表、匯入就緒報告。Triggers include quiz.json, Kahoot, 匯入題目, 匯入試算表.
+description: Use when a teacher needs a source-traceable, audience-aligned Kahoot spreadsheet import file, or needs to assess whether quiz JSON is ready for Kahoot import.
 ---
 
-# tw-kahoot-skill
+# Kahoot 測驗匯入
 
-把結構化測驗（quiz.json）轉成 Kahoot 官方「Import spreadsheet」格式的 `.xlsx`，並附上匯入就緒報告，老師拿著檔案自行到 kahoot.com 匯入、發布。
+將已審核的測驗 JSON 轉為 Kahoot `.xlsx` 匯入檔。核心原則是：**先取得可追溯的命題 brief，再產檔；格式可匯入不等於題目內容已被教學審核。**
 
-⚠️ **本 skill 的欄位配置尚未用真實下載範本逐欄核對過本輪即時版本**——2026-07-23 已直接下載 kahoot.com 官方託管的 2019 年範本檔並用程式讀出精確結構（見 `references/platform-features.md`），但無法排除 app 內即時提供的範本已再更新。建議下一輪用真實帳號驗證；上傳前務必先看 warnings 與 readiness report。
+## 必要工作流
 
-## 首次使用
+1. 蒐集來源、受測者、學習目標、用途與藍圖；資料缺漏時不要編題、不要產檔。
+2. 依下列契約建立 `quiz.json`，每題對應來源、目標、認知層次與難度。
+3. 執行 `node scripts/build-xlsx.mjs quiz.json out.xlsx`。
+4. 先讀 `out.quality.json`：`status: "ready"` 才能交付；逐題查看 `blockers`、`warnings`、`perQuestion` 和 `blueprint`。
+5. 再讀 `out.readiness.json` 與 stdout `warnings`：它處理的是 Kahoot 匯入格式、截斷與跳題風險，不取代內容審題。
+6. 教師自行在 Kahoot 建立未發布草稿匯入並核對預覽；不得聲稱已自動上傳、發布或指派。
 
-```bash
-cd <skill-dir> && npm install
+## assessment v1 契約
+
+```json
+{
+  "title": "單元檢核",
+  "questions": [{
+    "type": "multiple_choice",
+    "prompt": "題幹",
+    "options": [{"text": "選項 A", "correct": true}, {"text": "選項 B", "correct": false}],
+    "explanation": "供教師複核的說明",
+    "sourceRefIds": ["src-1"], "objectiveIds": ["obj-1"],
+    "cognitiveLevel": "understand", "difficulty": "basic"
+  }],
+  "assessment": {
+    "version": 1,
+    "sources": [{"id": "src-1", "title": "教材名稱", "locator": "第 3 頁／段落"}],
+    "audience": {"gradeLevel": "國七", "proficiency": "基礎", "language": "zh-TW", "prerequisites": ["已學過…"]},
+    "objectives": [{"id": "obj-1", "text": "能…"}],
+    "purpose": "形成性檢核",
+    "blueprint": [{"objectiveId": "obj-1", "cognitiveLevel": "understand", "difficulty": "basic", "count": 1}]
+  }
+}
 ```
 
-只在 `node_modules/` 不存在時執行。
+允許的 `cognitiveLevel`：`remember`、`understand`、`apply`、`analyze`、`evaluate`、`create`；`difficulty`：`basic`、`developing`、`proficient`、`advanced`。藍圖各格題數總和及每格實際題數均須吻合。選擇題至少一個正解；`multiple_choice` 必須剛好一個。
 
-## 工作流程
+## Kahoot 提醒
 
-1. **產生匯入檔（唯一步驟）**：
-   ```bash
-   node scripts/build-xlsx.mjs quiz.json out.xlsx
-   ```
-   輸出 JSON 含 `questionCount`、`warnings`、`readinessReportPath`（指向 `out.readiness.json`）。**warnings 一定要完整轉述給老師**，包含：不支援的題型（Kahoot 匯入僅支援 Quiz 選擇題）、超過 4 個答案被裁掉、題幹/答案超過官方確認的 120/75 字元上限已截斷、時間限制調整到官方檔位（5/10/20/30/60/90/120/240 秒）、含媒體的題目需人工補圖。
-   `readiness.json` 的 `checklist[0]` 永遠是信心等級提醒；`perQuestion` 陣列列出每題 ready/skipped 狀態與原因，上傳前建議老師先看過。
+- 試算表僅映射 `multiple_choice`、`multiple_select`、`true_false`；每題至少兩個選項、最多四個，媒體須進編輯器補上。
+- 題幹最多 120 字、選項最多 75 字；時間會調至 5/10/20/30/60/90/120/240 秒之一。完整轉述 warnings。
+- `readiness.json` 首項會提醒範本來源是仍在線的 2019 年官方檔。匯入前在 Kahoot 的 Import spreadsheet 畫面下載當日範本比對欄位。
 
-2. **上傳後，請老師在 Kahoot 官網做的事**：登入 kahoot.com → Create → Add question → Import → Import spreadsheet → 上傳剛產生的 xlsx → 對照 warnings 核對截斷/跳過的題目 → 自行發布。
+## 例外與限制
 
-## 規則
-
-- 每支腳本輸出單行 JSON：`{ok:true,...}` 或 `{ok:false,error,hint}`。
-- `warnings` 一定完整轉述；不支援的題型（除 Multiple Choice/True-False/Multiple Select 外皆不支援匯入）一定要點名，提醒老師可在 Kahoot 編輯器手動補建。
-- 這裡沒有任何瀏覽器/登入自動化，也沒有官方 API 可用——本 skill 只產生檔案。
+`--legacy` 只用於既有資料救援：它會產出 `legacy-unverified` 的 quality report，來源、對象與藍圖均未驗證，不能當作標準流程或「已驗題」。本 Skill 沒有 API、登入、瀏覽器自動化、發布或指派功能。
 
 ## 常見錯誤
 
 | 症狀 | 處理 |
 |---|---|
-| quiz.json 驗證失敗 | 對照 `scripts/lib/models.mjs` 的 Quiz schema 修正 |
-| `No questions could be mapped` | 所有題目型別都不被支援；檢查 quiz.json 的 `type` 欄位（僅 multiple_choice/true_false/multiple_select 可匯入） |
+| `assessment-quality-blocked` | 補足 v1 brief、題目追溯欄位與藍圖，不要直接改用 legacy。 |
+| 題目被 skipped | 看 readiness 的 `perQuestion`，以支援題型和必填選項修正，或在編輯器手動補建。 |
+| `explanation-missing` | 補上教師可複核的解析；這是 warning，不是內容正確性的證明。 |

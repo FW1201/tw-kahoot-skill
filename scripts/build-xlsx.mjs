@@ -22,6 +22,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { Quiz } from "./lib/models.mjs";
+import { legacyQualityReport, validateAssessmentQuiz } from "./lib/assessment-quality.mjs";
 
 // Real values read out of the 2019 official template (row 8 header text +
 // the Excel data-validation dropdown list on the time-limit column, G9).
@@ -132,7 +133,9 @@ const EXAMPLE_TEXT = "See an example question below (don't forget to overwrite t
 const EXPORT_REMINDER_TEXT =
   "And remember,  if you're not using Excel you need to export to .xlsx format before you upload to Kahoot!";
 
-export async function buildKahootWorkbook(quiz, outPath) {
+export async function buildKahootWorkbook(quiz, outPath, { legacy = false } = {}) {
+  const effectiveQuality = legacy ? legacyQualityReport(quiz) : validateAssessmentQuiz(quiz);
+  if (!effectiveQuality.ok) throw new Error("assessment-quality-blocked");
   const warnings = [];
   const perQuestion = [];
   const wb = new ExcelJS.Workbook();
@@ -224,8 +227,16 @@ export async function buildKahootWorkbook(quiz, outPath) {
   };
   const readinessPath = outPath.replace(/\.xlsx$/i, "") + ".readiness.json";
   await fs.writeFile(readinessPath, JSON.stringify(readiness, null, 2), "utf8");
+  const exportedQuality = structuredClone(effectiveQuality);
+  if (exportedQuality.status === "ready" && skippedCount > 0) {
+    exportedQuality.ok = false;
+    exportedQuality.status = "platform-partial";
+    exportedQuality.blockers = [...(exportedQuality.blockers ?? []), { code: "platform-unmappable", message: `${skippedCount} 題無法映射為 Kahoot 匯入列；請修正後再交付。` }];
+  }
+  const qualityReportPath = outPath.replace(/\.xlsx$/i, "") + ".quality.json";
+  await fs.writeFile(qualityReportPath, JSON.stringify(exportedQuality, null, 2), "utf8");
 
-  return { path: path.resolve(outPath), readinessReportPath: path.resolve(readinessPath), warnings, questionCount };
+  return { path: path.resolve(outPath), readinessReportPath: path.resolve(readinessPath), qualityReportPath: path.resolve(qualityReportPath), warnings, questionCount };
 }
 
 // CLI entry point only — guarded so buildKahootWorkbook can be imported
@@ -233,13 +244,19 @@ export async function buildKahootWorkbook(quiz, outPath) {
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const [, , input, output] = process.argv;
+  const legacy = process.argv.includes("--legacy");
   if (!input || !output) {
     console.log(JSON.stringify({ ok: false, error: "usage", hint: "node scripts/build-xlsx.mjs <quiz.json> <out.xlsx>" }));
     process.exit(1);
   }
   try {
     const quiz = Quiz.parse(JSON.parse(await fs.readFile(input, "utf8")));
-    const result = await buildKahootWorkbook(quiz, output);
+    const quality = legacy ? legacyQualityReport(quiz) : validateAssessmentQuiz(quiz);
+    if (!quality.ok) {
+      console.log(JSON.stringify({ ok: false, error: "assessment-quality-blocked", quality, hint: "請補齊 assessment brief，或明確使用 --legacy 產出未驗證檔案。" }));
+      process.exit(1);
+    }
+    const result = await buildKahootWorkbook(quiz, output, { quality });
     console.log(JSON.stringify({ ok: true, ...result, title: quiz.title }));
   } catch (err) {
     console.log(

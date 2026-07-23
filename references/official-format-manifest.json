@@ -1,0 +1,10 @@
+{
+  "platform": "Kahoot",
+  "source": "https://kahoot.com/files/2019/08/Kahoot-Quiz-Spreadsheet-Template.xlsx",
+  "retrieved": "2026-07-23",
+  "worksheet": "Sheet1",
+  "headerRow": 8,
+  "dataRow": 9,
+  "columns": ["sequence", "question", "answer1", "answer2", "answer3", "answer4", "timeLimitSeconds", "correctAnswers"],
+  "constraints": { "maxAnswers": 4, "maxQuestionChars": 120, "maxAnswerChars": 75, "timeLimitSeconds": [5, 10, 20, 30, 60, 90, 120, 240] }
+}

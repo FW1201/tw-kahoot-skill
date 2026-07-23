@@ -1,47 +1,68 @@
 <p align="center"><img src="assets/logo.jpeg" width="88" alt="Kahoot logo"></p>
 
-# tw-kahoot-skill
+# tw-kahoot-skill 使用手冊
 
-> ⚠️ **非官方工具**：本套件**不是** Kahoot 官方產品，也**非**其認可的整合。Kahoot 沒有建立測驗的公開 API，本套件只產生老師可以直接上傳的官方匯入試算表，不做任何瀏覽器自動化、登入或 API 呼叫。
+非官方、離線的 Kahoot 匯入檔產生器。它把**已對齊教材與學習者的**測驗 JSON 轉為 `.xlsx`、`.quality.json`、`.readiness.json`；不登入 Kahoot、不上傳、不發布、不指派，也不會判定學科內容事實正確。
 
-台灣 K-12 教師用的 Kahoot agent skill：一句話把結構化測驗 JSON 轉成 Kahoot 官方「Import spreadsheet」格式的匯入試算表 + 匯入就緒報告，老師拿著檔案自行到 kahoot.com 匯入、發布。
+## 事前條件
 
-## ⚠️ 已知限制與信心等級
+- Node.js 18 以上；在此資料夾執行 `npm install`。
+- 可定位的教學來源（教材名稱及頁碼、段落等 locator）。
+- 明確受測者：年級、程度、教學語言、至少一項先備能力。
+- 學習目標、測驗用途、題數與命題藍圖。請從 [assessment-brief.example.json](references/assessment-brief.example.json) 複製後擴充。
 
-本 skill 的官方格式資訊有兩層：
-- **高信心**：字元限制（題幹 120 字/答案 75 字）、時間限制的 8 個官方檔位（5/10/20/30/60/90/120/240 秒）、正解編碼方式（逗號分隔編號）——這些是 2026-07-23 直接下載 kahoot.com 官方第一方託管的真實範本檔案、用程式讀出確認的，不是猜測。
-- **殘留不確定性**：下載到的官方範本是 2019 年的檔案（雖然目前仍在 kahoot.com 線上服務中），無法排除 app 內即時提供的範本已再更新。詳見 `references/platform-features.md` 的完整信心分級。
-
-## 這套 skill 能做什麼
-
-老師把測驗題目給 agent，agent 產生 Kahoot 官方格式的匯入試算表（`.xlsx`），附上一份**匯入就緒報告**（每題 ready/skipped 狀態、截斷/時間調整等提醒），老師拿著檔案登入 Kahoot 自行匯入、發布。
-
-## 快速上手
+## 標準使用
 
 ```bash
-cd <skill-dir> && npm install                             # 首次
+npm install
 node scripts/build-xlsx.mjs quiz.json out.xlsx
 ```
 
-## 自然指令範例
+成功時會產出：
 
-| 老師說 | 觸發 |
+| 檔案 | 先看什麼 |
 |---|---|
-| 「把這 10 題轉成 Kahoot 匯入試算表」 | `build-xlsx.mjs quiz.json out.xlsx` |
-| 「這份試算表能直接匯入嗎？」 | 看 stdout 的 `warnings` + `readinessReportPath` |
+| `out.xlsx` | 交由教師匯入的試算表。 |
+| `out.quality.json` | `status` 必須是 `ready`；看 `blockers`、`warnings`、`perQuestion` 與 `blueprint`。 |
+| `out.readiness.json` | 看每題是否 ready/skipped，以及截斷、媒體與時間等格式提醒。 |
 
-## 功能總覽
+## 輸入與命題品質
 
-| 腳本 | 用途 | 輸入 | 輸出 |
-|---|---|---|---|
-| `scripts/build-xlsx.mjs` | 產生官方匯入試算表 + 匯入就緒報告 | `quiz.json` `out.xlsx` | 檔案路徑 + warnings + readinessReportPath |
+最上層為 Quiz（`title`、`questions[]`）；必須有 `assessment.version: 1`。`assessment` 必含：
 
-支援題型：**Multiple Choice / True-False / Multiple Select**（Kahoot 官方確認「spreadsheet importer only supports quiz creation」）。其餘題型（fill_blank/short_answer/open_ended/poll/word_cloud/matching/ordering/draw）會被跳過並列入 warnings，提醒老師在 Kahoot 編輯器手動補建。
+- `sources[]`: 每筆 `id`、`title`、`locator`。
+- `audience`: `gradeLevel`、`proficiency`、`language`、非空的 `prerequisites[]`。
+- `objectives[]`: 每筆 `id`、`text`，以及 `purpose`。
+- `blueprint[]`: `objectiveId`、`cognitiveLevel`、`difficulty`、正整數 `count`。
 
-## 為什麼沒有瀏覽器自動化
+每題必含 `sourceRefIds[]`、`objectiveIds[]`、`cognitiveLevel`、`difficulty`。認知層次只能是 `remember`、`understand`、`apply`、`analyze`、`evaluate`、`create`；難度只能是 `basic`、`developing`、`proficient`、`advanced`。藍圖總題數和每個「目標 × 層次 × 難度」格都要與實際題目一致。選擇題至少有一個正解，`multiple_choice` 剛好一個；建議每題寫 `explanation` 供教師複核。
 
-這套 skill 從第一版就採用純格式產生器策略，跟同系列的 Wayground/Nearpod/Wordwall 三個 repo 目前的定位一致（那三個原本用 Playwright 自動化，後來發現即便解決了 Google OAuth 拒絕自動化瀏覽器的問題，選擇器驅動的 UI 自動化本身仍不穩定，因而拿掉）。Kahoot 沒有公開 API，也不打算重蹈瀏覽器自動化的覆轍——只產生最大程度符合官方匯入規範的檔案，平台 UI 的最後一哩路（上傳、發布）交給老師。
+缺任一必填資料、追溯失敗、答案鍵錯誤或藍圖不符時，CLI 會以 `assessment-quality-blocked` 停止，**不會產出 xlsx**。這是刻意的安全門檻，不要在期限壓力下跳過。
 
-## License
+## Kahoot 匯入
 
-MIT
+此工具只映射 `multiple_choice`、`multiple_select`、`true_false`。每題至少兩個、最多四個選項；題幹最多 120 字、選項最多 75 字；時間會調整至 5/10/20/30/60/90/120/240 秒。媒體與不支援題型必須在 Kahoot 編輯器手動補建；完整轉述 stdout 的 warnings。
+
+教師操作：Kahoot → Create → Add question → Import → Import spreadsheet → 先下載當日官方 template 比對 → 上傳 `out.xlsx` → 在未發布草稿中逐題預覽與修正 → 再由教師決定是否發布。`readiness.json` 會保留目前欄位是以仍在線的 2019 年官方範本為基礎的提醒；它不是對當日平台 UI 的保證。
+
+## 舊資料、隱私與維護
+
+若必須處理舊 JSON，才明確使用 `node scripts/build-xlsx.mjs quiz.json out.xlsx --legacy`。此模式仍會輸出檔案，但 quality 狀態是 `legacy-unverified`，不可稱為驗題完成或標準產物。不要把學生個資、帳密或 API key 放進 JSON、產物或命令列。
+
+平台範本變更時，維護者應下載當日官方匯入範本，將欄名、欄序、字元限制、時間選項與一份未發布草稿匯入逐項比對，再更新測試與 `references/platform-features.md`；未做真人帳號驗證不得宣稱已完成。
+
+## 疑難排解
+
+| 現象 | 處理 |
+|---|---|
+| `assessment-quality-blocked` | 讀 quality 的 `blockers`，補 brief 或題目追溯欄位；不要以 legacy 代替修正。 |
+| 題目 skipped | 讀 readiness `perQuestion`，改成支援題型、補兩個選項與正解，或在平台手建。 |
+| 欄位／預覽異常 | 使用當日官方 template 重新比對，保留 xlsx 與兩份 JSON 作為問題證據。 |
+
+## 驗證
+
+```bash
+npm test
+```
+
+測試會檢查 assessment 品質門檻與輸出格式；不會登入平台或替你發布內容。評估情境見 [skill-evaluations.md](references/skill-evaluations.md)。

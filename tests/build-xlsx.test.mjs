@@ -6,12 +6,13 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
-  buildKahootWorkbook,
+  buildKahootWorkbook as rawBuildKahootWorkbook,
   MAX_QUESTION_CHARS,
   MAX_ANSWER_CHARS,
   VALID_TIME_SECONDS,
 } from "../scripts/build-xlsx.mjs";
 import { Quiz } from "../scripts/lib/models.mjs";
+const buildKahootWorkbook = (quiz, outPath) => rawBuildKahootWorkbook(quiz, outPath, { legacy: true });
 
 function tmpXlsx() {
   return path.join(os.tmpdir(), `kh-test-${Date.now()}-${Math.random().toString(36).slice(2)}.xlsx`);
