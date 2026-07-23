@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.png" width="88" alt="Kahoot logo"></p>
+<p align="center"><img src="assets/logo.jpeg" width="88" alt="Kahoot logo"></p>
 
 # tw-kahoot-skill
 
