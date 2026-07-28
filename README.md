@@ -2,7 +2,7 @@
 
 # tw-kahoot-skill 使用手冊
 
-非官方、離線的 Kahoot 匯入檔產生器。它把**已對齊教材與學習者的**測驗 JSON 轉為 `.xlsx`、`.quality.json`、`.readiness.json`；不登入 Kahoot、不上傳、不發布、不指派，也不會判定學科內容事實正確。
+Kahoot 教學資源 Skill。它把具來源追溯、受測者與命題藍圖的測驗 JSON 轉為 `.xlsx`、`.quality.json`、`.readiness.json`，並提供試算表與 PowerPoint／Google 簡報／Keynote／PDF 匯入草稿的教師操作指南。
 
 ## 事前條件
 
