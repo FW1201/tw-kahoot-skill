@@ -45,6 +45,18 @@ node scripts/build-xlsx.mjs quiz.json out.xlsx
 
 教師操作：Kahoot → Create → Add question → Import → Import spreadsheet → 先下載當日官方 template 比對 → 上傳 `out.xlsx` → 在未發布草稿中逐題預覽與修正 → 再由教師決定是否發布。`readiness.json` 會保留目前欄位是以仍在線的 2019 年官方範本為基礎的提醒；它不是對當日平台 UI 的保證。
 
+### 簡報教材轉換
+
+已登入後可由 `建立新內容 → 建立新 Kahoot → 匯入投影片` 上傳 PowerPoint、Google 簡報、Keynote 或 PDF；也可選 Google Drive／OneDrive。頁面顯示檔案上限 80 MB，轉換完成後選「繼續編輯」，再以未發布草稿核對內容。這條流程與 XLSX 試算表匯入分開，不可混用欄位或假設兩者結果相同。
+
+## 正常 Chrome 登入與錄製後銜接
+
+Cookie 提示與登入分開處理：若 Kahoot 顯示 Cookie／Consent 橫幅，先由教師處理必要 Cookie；接著登入可走 Chrome 原生 Google 帳戶提示或 Kahoot 一般登入頁兩條分支。不要讓自動化瀏覽器、嵌入式 WebView 或 Skill 代填 Email、密碼、MFA。若出現 `This browser or app may not be secure`、`signin/rejected` 或仍停在登入頁，回到正常 Chrome 完成登入後再繼續。Kahoot 回到管理頁、工作區／帳戶入口且不再顯示登入／註冊後，才算登入成功。
+
+收到可檢視的 Record & Replay 錄製後，才可用同一個已登入 Chrome 工作階段銜接 XLSX 匯入與未發布草稿預覽；每次重新讀取頁面，使用按鈕、分頁、檔案名稱與題數等語意資訊，不固定座標、私人 kahoot id 或錄製中的檔名。若現版建立器找不到 XLSX／spreadsheet 入口，停止回報版本差異，不猜測 URL。上傳前確認 `quality.status=ready`、readiness 無未處理 skipped／warning，預覽再核對題數、題型、選項、正解與解析。
+
+這個流程最多做到未發布草稿並回報證據；不會自動 Publish、Assign、分享或排程。完整停止條件見 [`references/google-oauth-handoff.md`](references/google-oauth-handoff.md) 與 [`references/recorded-action-handoff.md`](references/recorded-action-handoff.md)。
+
 ## 舊資料、隱私與維護
 
 若必須處理舊 JSON，才明確使用 `node scripts/build-xlsx.mjs quiz.json out.xlsx --legacy`。此模式仍會輸出檔案，但 quality 狀態是 `legacy-unverified`，不可稱為驗題完成或標準產物。不要把學生個資、帳密或 API key 放進 JSON、產物或命令列。

@@ -1,6 +1,6 @@
 # Kahoot 官方匯入格式調查（2026-07-23，含即時下載範本核對）
 
-Kahoot 沒有建立測驗的公開內容 API；官方提供的批次建立方式是內建的「Import spreadsheet」——編輯器內 Add question → Import → Import spreadsheet → 「Download our template」。
+Kahoot 沒有建立測驗的公開內容 API；目前實測同時存在兩條建立路徑：試算表匯入，以及 `建立新內容 → 建立新 Kahoot → 匯入投影片` 的簡報轉換流程。簡報入口支援 PowerPoint、Google 簡報、Keynote 或 PDF，頁面顯示上限 80 MB；轉換完成前只可回報檔名與處理狀態，不可宣稱已發布。
 
 ## 高信心（Kahoot 自己部落格逐字確認）
 

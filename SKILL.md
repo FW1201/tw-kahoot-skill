@@ -1,6 +1,6 @@
 ---
 name: tw-kahoot-skill
-description: Use when a teacher needs a source-traceable, audience-aligned Kahoot spreadsheet import file, or needs to assess whether quiz JSON is ready for Kahoot import.
+description: Use when a teacher needs a source-traceable, audience-aligned Kahoot spreadsheet import file, needs to assess whether quiz JSON is ready for Kahoot import, or needs a recorded, human-gated draft-import handoff with manual Google OAuth bootstrap.
 ---
 
 # Kahoot 測驗匯入
@@ -47,6 +47,18 @@ description: Use when a teacher needs a source-traceable, audience-aligned Kahoo
 - 試算表僅映射 `multiple_choice`、`multiple_select`、`true_false`；每題至少兩個選項、最多四個，媒體須進編輯器補上。
 - 題幹最多 120 字、選項最多 75 字；時間會調至 5/10/20/30/60/90/120/240 秒之一。完整轉述 warnings。
 - `readiness.json` 首項會提醒範本來源是仍在線的 2019 年官方檔。匯入前在 Kahoot 的 Import spreadsheet 畫面下載當日範本比對欄位。
+
+## 簡報匯入流程（實測）
+
+在已登入的正常 Chrome 中：`建立新內容` → `建立新 Kahoot` → `匯入投影片`。目前頁面提供 `同步 Google 雲端硬碟`、`同步 OneDrive`，以及從電腦上傳投影片；對話框明示支援 PowerPoint、Google 簡報、Keynote、PDF，檔案上限 80 MB。選取檔案後等待轉換，頁面會顯示檔名與「這可能需要花上幾分鐘」，再由教師選擇「繼續編輯」。這是簡報轉 Kahoot 草稿流程，不等同已發布。
+
+## 錄製後的草稿動作
+
+先依 [google-oauth-handoff.md](references/google-oauth-handoff.md) 在教師平常使用的正常 Chrome 個人檔案完成登入。Cookie 提示與登入是兩個獨立狀態；登入可走 Chrome 原生 Google 帳戶提示或 Kahoot 一般登入頁兩條分支。Skill 不代填 Email、密碼、MFA，也不接管嵌入式 WebView 或新開的自動化瀏覽器。若出現 `This browser or app may not be secure`、`signin/rejected` 或仍在登入頁，停止並請教師回到正常 Chrome 完成登入。
+
+只有在 Kahoot 回到管理頁、顯示工作區／帳戶入口且不再顯示登入／註冊後，才可接管同一個已登入 Chrome 工作階段。教師以 Record-a-Skill 提供可檢視錄製後，才可依 [recorded-action-handoff.md](references/recorded-action-handoff.md) 將錄到的 XLSX 匯入與未發布預覽接回工作流；沒有錄製時不可猜測網站操作。若現版只有「匯入投影片」而沒有 XLSX 入口，停止並回報版本差異。上傳前確認 `quality.status=ready`、readiness 無未處理 skipped／warning，並核對題數、題型、選項與正解。
+
+Publish、Assign、分享、排程與學生資料操作都要在發布前停止並回報證據；不能把看見 Publish 按鈕當成已完成外部寫入。
 
 ## 例外與限制
 
