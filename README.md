@@ -78,3 +78,13 @@ npm test
 ```
 
 測試會檢查 assessment 品質門檻與輸出格式；不會登入平台或替你發布內容。評估情境見 [skill-evaluations.md](references/skill-evaluations.md)。
+
+## CLI 控制與下一輪錄製
+
+```bash
+tw-edtech-kahoot doctor
+tw-edtech-kahoot validate --input quiz.json
+tw-edtech-kahoot plan --action quiz.import --resource CANARY-kahoot
+```
+
+一般建立或編輯用 `--confirm-write`；發布、分享、直播、指派、報告與刪除還需 `plan` 回傳的 `--confirm-plan` 與 `--confirm-impact <action:resource>`。請依序錄製題庫盤點、XLSX 匯入、投影片匯入、草稿編輯、公開設定、分享、Live、Assign、報告、集合與刪除；每段採 Canary 資源並讀回結果，且不得錄入登入憑證、學生 email、作答或分享連結。

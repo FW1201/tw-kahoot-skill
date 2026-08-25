@@ -62,7 +62,7 @@ Publish、Assign、分享、排程與學生資料操作都要在發布前停止�
 
 ## 例外與限制
 
-`--legacy` 只用於既有資料救援：它會產出 `legacy-unverified` 的 quality report，來源、對象與藍圖均未驗證，不能當作標準流程或「已驗題」。本 Skill 沒有 API、登入、瀏覽器自動化、發布或指派功能。
+`--legacy` 只用於既有資料救援：它會產出 `legacy-unverified` 的 quality report，來源、對象與藍圖均未驗證，不能當作標準流程或「已驗題」。未有已審核 action map 前，本 Skill 沒有 API、登入、瀏覽器控制、發布或指派功能。
 
 ## 常見錯誤
 
@@ -71,3 +71,14 @@ Publish、Assign、分享、排程與學生資料操作都要在發布前停止�
 | `assessment-quality-blocked` | 補足 v1 brief、題目追溯欄位與藍圖，不要直接改用 legacy。 |
 | 題目被 skipped | 看 readiness 的 `perQuestion`，以支援題型和必填選項修正，或在編輯器手動補建。 |
 | `explanation-missing` | 補上教師可複核的解析；這是 warning，不是內容正確性的證明。 |
+
+## CLI 教學帳戶控制（錄製後啟用）
+
+`tw-edtech-kahoot` 串接品質檢查、登入工作階段前置、動作計畫與遮罩證據。先跑 `doctor`、`validate --input quiz.json`、`catalog scan`、`plan`；未有使用者錄製並審核的 action map 時，`run` 只能安全回傳 `requires-recording`。
+
+```bash
+tw-edtech-kahoot validate --input quiz.json
+tw-edtech-kahoot plan --action quiz.import --resource CANARY-kahoot
+```
+
+XLSX 匯入與草稿編輯以 `--confirm-write` 確認；Publish、Share、Host、Assign、報告、集合與刪除還需 `--confirm-plan` 和 `--confirm-impact`。含學生資料的名單另需 `--confirm-student-data`，不得進入輸出、截圖、錄製或 Git。
