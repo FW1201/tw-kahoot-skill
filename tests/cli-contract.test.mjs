@@ -20,6 +20,7 @@ test("plan masks roster identities and returns a confirmation code", async () =>
   const result = run(["plan", "--action", "assignment.create", "--resource", "CANARY-kahoot", "--roster", roster]); assert.equal(result.status, 0, result.stderr);
   const out = JSON.parse(result.stdout); assert.equal(out.risk, "high"); assert.match(out.confirmationCode, /^[a-f0-9]{16}$/); assert.deepEqual(out.studentData, { present: true, count: 1, preview: ["王** <s***@example.edu>"] }); assert.doesNotMatch(JSON.stringify(out), /student@example\.edu/);
 });
+test("student-data action refuses a plan without a roster file", () => { const result = run(["plan", "--action", "assignment.create", "--resource", "CANARY-kahoot"]); assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error, "roster-required"); });
 test("run refuses an unconfirmed external action before trying Chrome", () => {
   const result = run(["run", "--action", "quiz.import", "--resource", "CANARY-kahoot"]); assert.equal(result.status, 1); const out = JSON.parse(result.stdout); assert.equal(out.error, "confirmation-required"); assert.equal(out.chromeChecked, false);
 });

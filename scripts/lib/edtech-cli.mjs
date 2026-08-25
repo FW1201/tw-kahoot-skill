@@ -25,6 +25,7 @@ export async function runEdtechCli({ platform, root, apiHandlers = {}, validate 
   const action = value(args, "action"); const resource = value(args, "resource"); if (!action || !resource) return out({ ok: false, error: "usage", hint: `${command} --action <action-id> --resource <resource-id-or-title>` }, 1);
   const definition = catalog.actions.find((item) => item.id === action); if (!definition) return out({ ok: false, error: "unknown-action", action, hint: "先執行 catalog scan，僅可操作目錄中列出的功能。" }, 1);
   let studentData; try { studentData = await rosterSummary(value(args, "roster")); } catch (error) { return out({ ok: false, error: "invalid-roster", hint: String(error.message ?? error) }, 1); }
+  if (definition.requiresStudentData && !studentData.present) return out({ ok: false, error: "roster-required", action, hint: "此動作涉及學生資料；請提供已受保護且不納入 Git 的 --roster 檔案。", externalWriteAttempted: false }, 1);
   const plan = { contractVersion: CONTRACT_VERSION, platform, catalogVersion: catalog.version, action, resource, risk: definition.risk, studentDataPresent: studentData.present, studentCount: studentData.count }; const code = confirmationCode(plan);
   if (command === "plan") return out({ ok: true, ...plan, confirmationCode: code, studentData, externalWriteAttempted: false });
   if (command === "verify") return out({ ok: false, error: "no-run-evidence", action, resource, hint: "verify 只讀取已完成 run 產生的遮罩證據；目前沒有可驗證的執行紀錄。", externalWriteAttempted: false }, 1);
