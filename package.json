@@ -1,6 +1,6 @@
 {
   "name": "tw-kahoot-skill",
-  "version": "0.3.0-rc.2",
+  "version": "0.3.0-rc.3",
   "description": "Agent skill: build a Kahoot official spreadsheet-import file with an import-readiness report for Taiwanese K-12 teachers. No browser automation, no API — spreadsheet importer only.",
   "type": "module",
   "license": "MIT",
