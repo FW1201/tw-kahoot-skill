@@ -1,102 +1,97 @@
 <p align="center"><img src="assets/logo.jpeg" width="88" alt="Kahoot logo"></p>
 
-# tw-kahoot-skill 使用手冊
+# tw-kahoot-skill
 
-Kahoot 教學資源 Skill。它把具來源追溯、受測者與命題藍圖的測驗 JSON 轉為 `.xlsx`、`.quality.json`、`.readiness.json`，並提供試算表與 PowerPoint／Google 簡報／Keynote／PDF 匯入草稿的教師操作指南。
+把具來源追溯的教材轉成 Kahoot 試算表及活動草稿準備資料，協助教師審查題目與處理格式限制。 目前版本：**0.3.0-rc.6（候選版）**。本專案為獨立教師工具，並非 Kahoot 官方產品。
 
-## 事前條件
+## 能力與限制
 
-- Node.js 18 以上；在此資料夾執行 `npm install`。
-- 可定位的教學來源（教材名稱及頁碼、段落等 locator）。
-- 明確受測者：年級、程度、教學語言、至少一項先備能力。
-- 學習目標、測驗用途、題數與命題藍圖。請從 [assessment-brief.example.json](references/assessment-brief.example.json) 複製後擴充。
+| 項目 | 本 Skill 協助 | 範圍與限制 |
+|---|---|---|
+| 題目試算表 | 將支援的測驗 JSON 轉成 XLSX、品質報告及匯入準備報告 | 試算表匯入依平台當時功能及帳號方案 |
+| 格式保真 | 保留來源與選項；過長、超過四個選項的題目不自動截斷 | 題目略過時回報 partial；解析、媒體及不支援題型須另處理 |
+| 投影片及課程 | 區分 Kahoot、講解、課程，以及試算表／簡報匯入指引 | 簡報匯入由平台介面處理，不等同此 CLI 產生 XLSX |
+| 人工驗收 | 交付答案、題數、媒體及預設空白題檢查項目 | 教師決定發布、分享或指派 |
 
-## 標準使用
+## 從教材到平台
+
+1. 提供教材檔案或連結、適用年級、學習目標、課堂時間、設備與希望使用的模式。未能讀取的來源會標示，不根據檔名猜測。
+2. Agent 整理來源、目標、活動、操作、回饋與學習證據；使用 [教學 brief 範例](assets/lesson-brief-v1.example.json) 與 `lesson` 檢查來源 ID 和時間等結構。
+3. 根據實際可用的 connector／MCP、官方 API、CLI、已登入瀏覽器或人工匯入路徑準備內容；建立或上傳僅在使用者授權且工具可用時執行。
+4. 回報來源對應、產物、連結與已知狀態，列出跳過、格式轉換、媒體損失及需手動補入項目。逾時或結果不明時先核對現有資源，避免重複建立。
+5. **平台成果與最終驗收交由教師人工確認。** Agent 不自動試玩或模擬學生操作，也不將試玩列為交付條件；未經確認的內容不宣稱已驗收。分享、發布與指派依授權及當時工具能力處理。
+
+## 產生 Kahoot 匯入檔
 
 ```bash
-npm install
 node scripts/build-xlsx.mjs quiz.json out.xlsx
 ```
 
-成功時會產出：
+輸入與命題藍圖參見 [assessment 範例](references/assessment-brief.example.json)。檢查 `out.quality.json`、`out.readiness.json` 及 warnings；`partial` 代表有題目未轉入。試算表支援的題型、長度及時間以當日平台與報告為準；解析、媒體與未支援內容保留在原始資料並交給教師處理。詳見 [CLI 使用手冊](references/cli-guide.md)。
 
-| 檔案 | 先看什麼 |
-|---|---|
-| `out.xlsx` | 交由教師匯入的試算表。 |
-| `out.quality.json` | `status` 必須是 `ready`；看 `blockers`、`warnings`、`perQuestion` 與 `blueprint`。 |
-| `out.readiness.json` | 看每題是否 ready/skipped，以及超長、媒體與時間等格式提醒。 |
+## 給 Agent 的指令範例
 
-## 輸入與命題品質
+> 請依這份七年級教材設計 15 分鐘 Kahoot 活動，保留題目來源與正解，產生匯入試算表並列出需要人工補入的內容。
 
-最上層為 Quiz（`title`、`questions[]`）；必須有 `assessment.version: 1`。`assessment` 必含：
+教學 brief 範例可用下列命令檢查；結構通過不代表學科內容已經教師審核：
 
-- `sources[]`: 每筆 `id`、`title`、`locator`。
-- `audience`: `gradeLevel`、`proficiency`、`language`、非空的 `prerequisites[]`。
-- `objectives[]`: 每筆 `id`、`text`，以及 `purpose`。
-- `blueprint[]`: `objectiveId`、`cognitiveLevel`、`difficulty`、正整數 `count`。
+```bash
+node scripts/tw-edtech-kahoot.mjs lesson --input assets/lesson-brief-v1.example.json
+```
 
-每題必含 `sourceRefIds[]`、`objectiveIds[]`、`cognitiveLevel`、`difficulty`。認知層次只能是 `remember`、`understand`、`apply`、`analyze`、`evaluate`、`create`；難度只能是 `basic`、`developing`、`proficient`、`advanced`。藍圖總題數和每個「目標 × 層次 × 難度」格都要與實際題目一致。選擇題至少有一個正解，`multiple_choice` 剛好一個；建議每題寫 `explanation` 供教師複核。
+## 安裝與環境檢查
 
-缺任一必填資料、追溯失敗、答案鍵錯誤或藍圖不符時，CLI 會以 `assessment-quality-blocked` 停止，**不會產出 xlsx**。這是刻意的安全門檻，不要在期限壓力下跳過。
+需要 Node.js 18 以上；平台操作另依所選路徑需要網路、平台權限與使用者登入。沒有 connector 不會阻止本地教材設計或現有支援的匯入檔產生。
 
-## Kahoot 匯入
+```bash
+git clone https://github.com/FW1201/tw-kahoot-skill.git
+cd tw-kahoot-skill
+npm ci --ignore-scripts
+node scripts/portable-core/agent-doctor.mjs --agent codex
+```
 
-此工具只映射 `multiple_choice`、`multiple_select`、`true_false`。每題至少兩個、最多四個選項；題幹最多 120 字、選項最多 75 字；時間會調整至目前官方文件列出的 5/10/20/30/60/120 秒。超長題幹、選項或超過四個選項的題目跳過而不自動截斷；部分轉換回傳 `partial`、exit code 2，須檢查報告與原始教材。是非題轉成保留原選項的標準 Quiz，不是原生是非題；多選轉換需核對帳號與匯入結果。媒體與不支援題型必須在 Kahoot 編輯器手動補建；完整轉述 stdout 的 warnings。
+`codex` 可改成 `claude`、`antigravity`、`opencode` 或 `other`。診斷檢查 Node、npm、作業系統、安裝位置與同名 Skill；它不會顯示憑證，也不會憑本機程序推定 connector、平台登入或權限可用。結果為 `unknown` 時，請在當前 Agent 中確認。
 
-教師操作：Kahoot → Create → Add question → Import → Import spreadsheet → 先下載當日官方 template 比對 → 上傳 `out.xlsx` → 在未發布草稿中逐題預覽與修正 → 再由教師決定是否發布。`readiness.json` 會保留目前欄位是以仍在線的 2019 年官方範本為基礎的提醒；它不是對當日平台 UI 的保證。
+### 安裝到 Agent 專案
 
-### 簡報教材轉換
+先將下列 `<既有專案目錄>` 換成實際路徑；安裝器先執行診斷，預設只預覽：
 
-已登入後可由 `建立新內容 → 建立新 Kahoot → 匯入投影片` 上傳 PowerPoint、Google 簡報、Keynote 或 PDF；也可選 Google Drive／OneDrive。頁面顯示檔案上限 80 MB，轉換完成後選「繼續編輯」，再以未發布草稿核對內容。這條流程與 XLSX 試算表匯入分開，不可混用欄位或假設兩者結果相同。
+```bash
+node scripts/portable-core/install.mjs --agent codex --project <既有專案目錄>
+node scripts/portable-core/install.mjs --agent codex --project <既有專案目錄> --apply --with-deps
+```
 
-## 正常 Chrome 登入與錄製後銜接
+其他 Agent 將 `codex` 換成對應名稱。同名目標預設拒絕覆蓋；升級時先預覽 `--upgrade`，確認目標後使用 `--upgrade --apply --with-deps`。舊版會備份至專案 `.edtech-skill-backups/`，準備依賴失敗時保留原版。安裝器僅處理專案 Skill，不會設定全域 MCP、登入或保證自動觸發。重新載入 Agent，確認實際讀取的 Skill 路徑。詳細修復與回復見 [跨 Agent 整合](references/portable-integration.md)。
 
-Cookie 提示與登入分開處理：若 Kahoot 顯示 Cookie／Consent 橫幅，先由教師處理必要 Cookie；接著登入可走 Chrome 原生 Google 帳戶提示或 Kahoot 一般登入頁兩條分支。不要讓自動化瀏覽器、嵌入式 WebView 或 Skill 代填 Email、密碼、MFA。若出現 `This browser or app may not be secure`、`signin/rejected` 或仍停在登入頁，回到正常 Chrome 完成登入後再繼續。Kahoot 回到管理頁、工作區／帳戶入口且不再顯示登入／註冊後，才算登入成功。
+## Connector、MCP 與替代路徑
 
-收到可檢視的 Record & Replay 錄製後，才可用同一個已登入 Chrome 工作階段銜接 XLSX 匯入與未發布草稿預覽；每次重新讀取頁面，使用按鈕、分頁、檔案名稱與題數等語意資訊，不固定座標、私人 kahoot id 或錄製中的檔名。若現版建立器找不到 XLSX／spreadsheet 入口，停止回報版本差異，不猜測 URL。上傳前確認 `quality.status=ready`、readiness 無未處理 skipped／warning，預覽再核對題數、題型、選項、正解與解析。
+本 Skill 優先評估當前宿主工具是否能完成指定任務，再依可用性選擇 connector、MCP、官方 API、CLI、Computer Use 或人工匯入。工具路由需要本次實際的能力與權限證據；CLI 本身不能直接呼叫 Codex 的內建 connector。呼叫失敗、逾時或回應不明時會與成功分開處理，不自動重送可能已寫入的動作。
 
-這個流程最多做到未發布草稿並回報證據；不會自動 Publish、Assign、分享或排程。完整停止條件見 [`references/google-oauth-handoff.md`](references/google-oauth-handoff.md) 與 [`references/recorded-action-handoff.md`](references/recorded-action-handoff.md)。
+四平台另有獨立的 MCP Skills 套件，提供 Skill 入口及參考資源；它不附帶平台 connector，不代表宿主會自動啟用 Skill。MCP 套件並非本儲存庫的一部分；需取得其獨立發佈檔再配置。
 
-## 舊資料、隱私與維護
+## 相容性與驗證狀態
 
-若必須處理舊 JSON，才明確使用 `node scripts/build-xlsx.mjs quiz.json out.xlsx --legacy`。此模式仍會輸出檔案，但 quality 狀態是 `legacy-unverified`，不可稱為驗題完成或標準產物。不要把學生個資、帳密或 API key 放進 JSON、產物或命令列。
+| Agent | 目前證據 | 尚待確認 |
+|---|---|---|
+| Codex | 曾以明確指名在新對話讀取四個 Skill；一般 MCP 清單與讀取工具曾測試 | 自動觸發、各帳號及所有平台操作不保證 |
+| OpenCode | 曾在新對話測試 Padlet Skill 的明確指名與自然語句載入 | 本 Skill 各版本及 connector 路徑未逐一實測 |
+| Claude Code | 本機已安裝，當時 OAuth 工作階段過期 | 登入後載入、新對話與工具路徑待實測 |
+| Antigravity | 本機已安裝並確認 CLI 版本 | 技能載入及工具路徑待實測 |
+| Grok Bot | 已納入可攜式設計考量 | 雲端安裝、執行與 MCP 相容性未實測 |
 
-平台範本變更時，維護者應下載當日官方匯入範本，將欄名、欄序、字元限制、時間選項與一份未發布草稿匯入逐項比對，再更新測試與 `references/platform-features.md`；未做真人帳號驗證不得宣稱已完成。
+平台方案、介面、權限與工具可能變動。各模式已觀察範圍見 [平台模式](references/platform-modes.md) 與 [驗證紀錄](references/release-validation.md)；不把單次範例延伸成所有功能已驗證。
 
-## 疑難排解
-
-| 現象 | 處理 |
-|---|---|
-| `assessment-quality-blocked` | 讀 quality 的 `blockers`，補 brief 或題目追溯欄位；不要以 legacy 代替修正。 |
-| 題目 skipped | 讀 readiness `perQuestion`，改成支援題型、補兩個選項與正解，或在平台手建。 |
-| 欄位／預覽異常 | 使用當日官方 template 重新比對，保留 xlsx 與兩份 JSON 作為問題證據。 |
-
-## 驗證
+## 維護與測試
 
 ```bash
 npm test
+git diff --check
 ```
 
-測試會檢查 assessment 品質門檻與輸出格式；不會登入平台或替你發布內容。評估情境見 [skill-evaluations.md](references/skill-evaluations.md)。
+自動化測試不登入、不代替平台成果的人工審查。詳細既有命令、格式與疑難排解見 [CLI 使用手冊](references/cli-guide.md)；平台與 API 使用均依授權及各平台當前條件。不要將密碼、API key、Cookie 或不必要的學生資料放進教材、日誌或版本庫。
 
-## CLI 控制與下一輪錄製
+## 四平台專案
 
-```bash
-tw-edtech-kahoot doctor
-tw-edtech-kahoot validate --input quiz.json
-tw-edtech-kahoot plan --action quiz.import --resource CANARY-kahoot
-```
+[Wordwall](https://github.com/FW1201/tw-wordwall-skill) · [Padlet](https://github.com/FW1201/tw-padlet-skill) · [Wayground](https://github.com/FW1201/tw-wayground-skill) · [Kahoot](https://github.com/FW1201/tw-kahoot-skill)
 
-一般建立或編輯用 `--confirm-write`；發布、分享、直播、指派、報告與刪除還需 `plan` 回傳的 `--confirm-plan` 與 `--confirm-impact <action:resource>`。請依序錄製題庫盤點、XLSX 匯入、投影片匯入、草稿編輯、公開設定、分享、Live、Assign、報告、集合與刪除；每段採 Canary 資源並讀回結果，且不得錄入登入憑證、學生 email、作答或分享連結。
-
-## 跨 Agent 安裝診斷
-
-安裝前執行 `node scripts/portable-core/agent-doctor.mjs --agent codex`，其他 Agent 可替換為 `claude`、`antigravity`、`opencode` 或 `other`。診斷結果中的 unknown 需在實際 Agent 與平台確認；詳見 [跨 Agent 指引](references/portable-integration.md)。核心只提供診斷和路由建議，不會自動安裝、登入或執行平台操作。
-
-### 專案範圍安裝
-
-執行 `node scripts/portable-core/install.mjs --agent codex --project <專案目錄>` 預覽；確認結果後加 `--apply`，將完整 Skill 複製到該 Agent 專案技能目錄。已有同名 Skill 時停止，絕不覆蓋；需要同時安裝套件時加 `--with-deps`，使用 `npm ci --ignore-scripts`；完成後重新載入 Agent 並檢查技能發現。安裝器不修改 MCP 設定或登入。
-
-使用 `tw-edtech-kahoot runtime --inventory inventory.json` 將本次 Agent 發現的工具與替代能力送入 CLI，回報動作路由；此命令唯讀，不會替宿主呼叫 connector。工具可見不代表帳號權限已驗證。
-
-專案既有 Skill 的安全升級及回復指引見 [跨 Agent 整合](references/portable-integration.md#專案安裝與升級)。
+MIT License

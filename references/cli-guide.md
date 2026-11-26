@@ -1,0 +1,93 @@
+> 此頁保存既有 CLI 的詳細命令；命令均從 Skill 根目錄執行。不同 Agent 的 connector 和 Computer Use 能力見 [README](../README.md)，若與本頁 API／CLI 範圍不同，以實際工具能力為準。平台成品由教師人工驗收，不要求 Agent 試玩。
+
+<p align="center"><img src="../assets/logo.jpeg" width="88" alt="Kahoot logo"></p>
+
+# tw-kahoot-skill 使用手冊
+
+Kahoot 教學資源 Skill。它把具來源追溯、受測者與命題藍圖的測驗 JSON 轉為 `.xlsx`、`.quality.json`、`.readiness.json`，並提供試算表與 PowerPoint／Google 簡報／Keynote／PDF 匯入草稿的教師操作指南。
+
+## 事前條件
+
+- Node.js 18 以上；在此資料夾執行 `npm install`。
+- 可定位的教學來源（教材名稱及頁碼、段落等 locator）。
+- 明確受測者：年級、程度、教學語言、至少一項先備能力。
+- 學習目標、測驗用途、題數與命題藍圖。請從 [assessment-brief.example.json](assessment-brief.example.json) 複製後擴充。
+
+## 標準使用
+
+```bash
+npm install
+node scripts/build-xlsx.mjs quiz.json out.xlsx
+```
+
+成功時會產出：
+
+| 檔案 | 先看什麼 |
+|---|---|
+| `out.xlsx` | 交由教師匯入的試算表。 |
+| `out.quality.json` | `status` 必須是 `ready`；看 `blockers`、`warnings`、`perQuestion` 與 `blueprint`。 |
+| `out.readiness.json` | 看每題是否 ready/skipped，以及超長、媒體與時間等格式提醒。 |
+
+## 輸入與命題品質
+
+最上層為 Quiz（`title`、`questions[]`）；必須有 `assessment.version: 1`。`assessment` 必含：
+
+- `sources[]`: 每筆 `id`、`title`、`locator`。
+- `audience`: `gradeLevel`、`proficiency`、`language`、非空的 `prerequisites[]`。
+- `objectives[]`: 每筆 `id`、`text`，以及 `purpose`。
+- `blueprint[]`: `objectiveId`、`cognitiveLevel`、`difficulty`、正整數 `count`。
+
+每題必含 `sourceRefIds[]`、`objectiveIds[]`、`cognitiveLevel`、`difficulty`。認知層次只能是 `remember`、`understand`、`apply`、`analyze`、`evaluate`、`create`；難度只能是 `basic`、`developing`、`proficient`、`advanced`。藍圖總題數和每個「目標 × 層次 × 難度」格都要與實際題目一致。選擇題至少有一個正解，`multiple_choice` 剛好一個；建議每題寫 `explanation` 供教師複核。
+
+缺任一必填資料、追溯失敗、答案鍵錯誤或藍圖不符時，CLI 會以 `assessment-quality-blocked` 停止，**不會產出 xlsx**。這是刻意的安全門檻，不要在期限壓力下跳過。
+
+## Kahoot 匯入
+
+此工具只映射 `multiple_choice`、`multiple_select`、`true_false`。每題至少兩個、最多四個選項；題幹最多 120 字、選項最多 75 字；時間會調整至目前官方文件列出的 5/10/20/30/60/120 秒。超長題幹、選項或超過四個選項的題目跳過而不自動截斷；部分轉換回傳 `partial`、exit code 2，須檢查報告與原始教材。是非題轉成保留原選項的標準 Quiz，不是原生是非題；多選轉換需核對帳號與匯入結果。媒體與不支援題型必須在 Kahoot 編輯器手動補建；完整轉述 stdout 的 warnings。
+
+教師操作：Kahoot → Create → Add question → Import → Import spreadsheet → 先下載當日官方 template 比對 → 上傳 `out.xlsx` → 在未發布草稿中逐題預覽與修正 → 再由教師決定是否發布。`readiness.json` 會保留目前欄位是以仍在線的 2019 年官方範本為基礎的提醒；它不是對當日平台 UI 的保證。
+
+### 簡報教材轉換
+
+已登入後可由 `建立新內容 → 建立新 Kahoot → 匯入投影片` 上傳 PowerPoint、Google 簡報、Keynote 或 PDF；也可選 Google Drive／OneDrive。頁面顯示檔案上限 80 MB，轉換完成後選「繼續編輯」，再以未發布草稿核對內容。這條流程與 XLSX 試算表匯入分開，不可混用欄位或假設兩者結果相同。
+
+## 正常 Chrome 登入與錄製後銜接
+
+Cookie 提示與登入分開處理：若 Kahoot 顯示 Cookie／Consent 橫幅，先由教師處理必要 Cookie；接著登入可走 Chrome 原生 Google 帳戶提示或 Kahoot 一般登入頁兩條分支。不要讓自動化瀏覽器、嵌入式 WebView 或 Skill 代填 Email、密碼、MFA。若出現 `This browser or app may not be secure`、`signin/rejected` 或仍停在登入頁，回到正常 Chrome 完成登入後再繼續。Kahoot 回到管理頁、工作區／帳戶入口且不再顯示登入／註冊後，才算登入成功。
+
+收到可檢視的 Record & Replay 錄製後，才可用同一個已登入 Chrome 工作階段銜接 XLSX 匯入與未發布草稿預覽；每次重新讀取頁面，使用按鈕、分頁、檔案名稱與題數等語意資訊，不固定座標、私人 kahoot id 或錄製中的檔名。若現版建立器找不到 XLSX／spreadsheet 入口，停止回報版本差異，不猜測 URL。上傳前確認 `quality.status=ready`、readiness 無未處理 skipped／warning，預覽再核對題數、題型、選項、正解與解析。
+
+這個流程最多做到未發布草稿並回報證據；不會自動 Publish、Assign、分享或排程。完整停止條件見 [`references/google-oauth-handoff.md`](google-oauth-handoff.md) 與 [`references/recorded-action-handoff.md`](recorded-action-handoff.md)。
+
+## 舊資料、隱私與維護
+
+若必須處理舊 JSON，才明確使用 `node scripts/build-xlsx.mjs quiz.json out.xlsx --legacy`。此模式仍會輸出檔案，但 quality 狀態是 `legacy-unverified`，不可稱為驗題完成或標準產物。不要把學生個資、帳密或 API key 放進 JSON、產物或命令列。
+
+平台範本變更時，維護者應下載當日官方匯入範本，將欄名、欄序、字元限制、時間選項與一份未發布草稿匯入逐項比對，再更新測試與 `references/platform-features.md`；未做真人帳號驗證不得宣稱已完成。
+
+## 疑難排解
+
+| 現象 | 處理 |
+|---|---|
+| `assessment-quality-blocked` | 讀 quality 的 `blockers`，補 brief 或題目追溯欄位；不要以 legacy 代替修正。 |
+| 題目 skipped | 讀 readiness `perQuestion`，改成支援題型、補兩個選項與正解，或在平台手建。 |
+| 欄位／預覽異常 | 使用當日官方 template 重新比對，保留 xlsx 與兩份 JSON 作為問題證據。 |
+
+## 驗證
+
+```bash
+npm test
+```
+
+測試會檢查 assessment 品質門檻與輸出格式；不會登入平台或替你發布內容。評估情境見 [skill-evaluations.md](skill-evaluations.md)。
+
+## CLI 控制與下一輪錄製
+
+```bash
+tw-edtech-kahoot doctor
+tw-edtech-kahoot validate --input quiz.json
+tw-edtech-kahoot plan --action quiz.import --resource CANARY-kahoot
+```
+
+一般建立或編輯用 `--confirm-write`；發布、分享、直播、指派、報告與刪除還需 `plan` 回傳的 `--confirm-plan` 與 `--confirm-impact <action:resource>`。請依序錄製題庫盤點、XLSX 匯入、投影片匯入、草稿編輯、公開設定、分享、Live、Assign、報告、集合與刪除；每段採 Canary 資源並讀回結果，且不得錄入登入憑證、學生 email、作答或分享連結。
+
