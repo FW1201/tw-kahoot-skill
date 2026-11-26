@@ -5,6 +5,28 @@
   "worksheet": "Sheet1",
   "headerRow": 8,
   "dataRow": 9,
-  "columns": ["sequence", "question", "answer1", "answer2", "answer3", "answer4", "timeLimitSeconds", "correctAnswers"],
-  "constraints": { "maxAnswers": 4, "maxQuestionChars": 120, "maxAnswerChars": 75, "timeLimitSeconds": [5, 10, 20, 30, 60, 90, 120, 240] }
+  "columns": [
+    "sequence",
+    "question",
+    "answer1",
+    "answer2",
+    "answer3",
+    "answer4",
+    "timeLimitSeconds",
+    "correctAnswers"
+  ],
+  "constraints": {
+    "maxAnswers": 4,
+    "maxQuestionChars": 120,
+    "maxAnswerChars": 75,
+    "timeLimitSeconds": [
+      5,
+      10,
+      20,
+      30,
+      60,
+      120
+    ]
+  },
+  "timeLimitNote": "2026-11-26 官方支援文章列出此六種，舊範本另有 90、240；本工具採較保守的交集。"
 }

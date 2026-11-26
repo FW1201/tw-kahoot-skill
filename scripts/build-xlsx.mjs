@@ -29,16 +29,12 @@ import { legacyQualityReport, validateAssessmentQuiz } from "./lib/assessment-qu
 export const MAX_QUESTION_CHARS = 120;
 export const MAX_ANSWER_CHARS = 75;
 export const MAX_ANSWERS = 4;
-export const VALID_TIME_SECONDS = [5, 10, 20, 30, 60, 90, 120, 240];
+export const VALID_TIME_SECONDS = [5, 10, 20, 30, 60, 120];
 export const DEFAULT_TIME_SECONDS = 20;
 
 const SUPPORTED_TYPES = new Set(["multiple_choice", "true_false", "multiple_select"]);
 
 const plain = (text) => text.replace(/\s+/g, " ").trim();
-
-function truncate(text, max) {
-  return text.length > max ? text.slice(0, max) : text;
-}
 
 function snapToValidTime(seconds) {
   const t = seconds ?? DEFAULT_TIME_SECONDS;
@@ -62,49 +58,38 @@ function mapQuestion(q, idx) {
     };
   }
 
-  let options = q.options;
+  const options = q.options;
+  // Spreadsheet rows are standard Quiz, even if the source is True/False.
+  // Preserve labels and marked answers instead of inferring truth from wording.
   if (q.type === "true_false") {
-    const correctIsTrue = q.options.some(
-      (o) => o.correct && /^(true|t|是|對|正確)$/i.test(o.text.trim()),
-    );
-    options = [
-      { text: "True", correct: correctIsTrue },
-      { text: "False", correct: !correctIsTrue },
-    ];
-  }
-
-  const usable = options.slice(0, MAX_ANSWERS);
-  if (options.length > MAX_ANSWERS) {
-    notes.push(`Kahoot 匯入範本最多 ${MAX_ANSWERS} 個答案欄位——多出的選項已捨棄。`);
-  }
-  if (usable.length < 2) {
-    return { ok: false, reason: "fewer than 2 options — skipped." };
-  }
-
-  const correctIdxs = usable.map((o, i) => (o.correct ? i + 1 : 0)).filter((n) => n > 0);
-  if (correctIdxs.length === 0) {
-    return { ok: false, reason: "no correct option(s) marked — skipped." };
-  }
-  const correct = correctIdxs.join(",");
-
-  let questionText = plain(q.prompt);
-  if (questionText.length > MAX_QUESTION_CHARS) {
-    notes.push(
-      `題幹 ${questionText.length} 字，超過 Kahoot 官方確認的 ${MAX_QUESTION_CHARS} 字上限，已截斷至 ${MAX_QUESTION_CHARS} 字。`,
-    );
-    questionText = truncate(questionText, MAX_QUESTION_CHARS);
-  }
-
-  const answers = usable.map((o, i) => {
-    let text = plain(o.text);
-    if (text.length > MAX_ANSWER_CHARS) {
-      notes.push(
-        `答案 ${i + 1}「${text.slice(0, 20)}...」共 ${text.length} 字，超過 Kahoot 官方確認的 ${MAX_ANSWER_CHARS} 字上限，已截斷。`,
-      );
-      text = truncate(text, MAX_ANSWER_CHARS);
+    if (options.length !== 2 || options.filter(o => o.correct).length !== 1) {
+      return {ok:false, reason:"true_false requires exactly two original options and one correct answer — skipped; review source."};
     }
-    return text;
-  });
+    notes.push("原始是非題將轉成兩選項標準 Quiz；不保留 Kahoot 原生 True/False 題型，匯入後核對。");
+  }
+  if (q.type === "multiple_select") {
+    notes.push("多個答案以逗號編碼為標準 Quiz；多選呈現與評分依帳號及匯入後介面核對。");
+  }
+  if (options.length > MAX_ANSWERS) {
+    return {ok:false, reason:`${options.length} options exceed the ${MAX_ANSWERS}-column spreadsheet template — skipped; simplify and review without discarding options.`};
+  }
+  if (options.length < 2) return {ok:false, reason:"fewer than 2 options — skipped."};
+  const correctIdxs = options.map((o,i)=>o.correct?i+1:0).filter(Boolean);
+  if (!correctIdxs.length) return {ok:false,reason:"no correct option(s) marked — skipped."};
+  if (q.type === "multiple_choice" && correctIdxs.length !== 1) return {ok:false,reason:"multiple_choice requires exactly one correct answer — skipped."};
+  const correct=correctIdxs.join(",");
+  const questionText=plain(q.prompt);
+  if (!questionText || questionText.length > MAX_QUESTION_CHARS) {
+    return {ok:false,reason:`題幹空白或超過 ${MAX_QUESTION_CHARS} 字上限 — skipped; shorten and review; not truncated.`};
+  }
+  const answers=options.map(o=>plain(o.text));
+  if (answers.some(a=>!a || a.length>MAX_ANSWER_CHARS)) {
+    return {ok:false,reason:`答案空白或超過 ${MAX_ANSWER_CHARS} 字上限 — skipped; shorten and review; not truncated.`};
+  }
+  if (new Set(answers).size !== answers.length) return {ok:false,reason:"duplicate answer labels after normalization — skipped; revise."};
+  if (options.some(o=>o.media)) notes.push("選項媒體無法由試算表保留，匯入後需在編輯器另行處理。");
+  if (q.explanation || options.some(o=>o.rationale)) notes.push("解析或選項理由不在試算表欄位內；需另存並於編輯器核對或補充。");
+  if (/[\u2200-\u22ff\u27c0-\u27ef\u{1D400}-\u{1D7FF}]/u.test([questionText,...answers].join(' '))) notes.push("含數學符號；官方指出特殊字元可能無法由試算表匯入，須在編輯器逐題核對並補上。");
 
   if (q.media) {
     notes.push("Kahoot 匯入範本沒有圖片欄位；需老師之後在編輯器手動加圖。");
@@ -113,7 +98,7 @@ function mapQuestion(q, idx) {
   const providedTime = q.timeLimitSeconds;
   const time = snapToValidTime(providedTime);
   if (providedTime === undefined) {
-    notes.push(`未提供時間限制，套用 Kahoot 官方文件記載的預設 ${DEFAULT_TIME_SECONDS} 秒。`);
+    notes.push(`未提供時間限制，套用本工具預設 ${DEFAULT_TIME_SECONDS} 秒。`);
   } else if (time !== providedTime) {
     notes.push(
       `時間限制 ${providedTime}s 已調整到最接近的官方檔位 ${time}s（官方下拉選單僅接受 ${VALID_TIME_SECONDS.join("/")} 秒）。`,
@@ -173,7 +158,7 @@ export async function buildKahootWorkbook(quiz, outPath, { legacy = false } = {}
     const r = mapQuestion(q, idx);
     if (!r.ok) {
       warnings.push(`Q${idx + 1}: ${r.reason}`);
-      perQuestion.push({ index: idx + 1, status: "skipped", type: q.type, reason: r.reason });
+      perQuestion.push({ index: idx + 1, status: "skipped", type: q.type, sourceRefIds: q.sourceRefIds ?? [], objectiveIds: q.objectiveIds ?? [], reason: r.reason });
       return;
     }
     r.notes.forEach((n) => warnings.push(`Q${idx + 1}: ${n}`));
@@ -181,6 +166,8 @@ export async function buildKahootWorkbook(quiz, outPath, { legacy = false } = {}
       index: idx + 1,
       status: "ready",
       type: q.type,
+      sourceRefIds: q.sourceRefIds ?? [],
+      objectiveIds: q.objectiveIds ?? [],
       notes: r.notes.length ? r.notes : undefined,
     });
 
@@ -221,7 +208,7 @@ export async function buildKahootWorkbook(quiz, outPath, { legacy = false } = {}
       "⚠️ 本欄位配置（欄名/欄序/字元上限）已對照 2026-07-23 直接下載的 kahoot.com 官方範本（2019 年版，仍在線上服務中）核對，但無法排除目前 app 內即時下載到的範本已再更新。上傳前請先到 Kahoot「Add question → Import → Import spreadsheet →『Download our template』」下載官方範本比對，如有落差請回報。",
       `${questionCount}/${quiz.questions.length} 題已就緒可匯入。`,
       ...(skippedCount ? [`${skippedCount} 題因型別/欄位不足被跳過，需在編輯器手動補建（見 perQuestion 的 skipped 項目）。`] : []),
-      ...(flaggedCount ? [`${flaggedCount} 題有非致命提醒（截斷/媒體/時間調整等），上傳前建議先看過。`] : []),
+      ...(flaggedCount ? [`${flaggedCount} 題有非致命提醒（題型轉換/媒體/時間調整等），上傳前建議先看過。`] : []),
     ],
     perQuestion,
   };
@@ -256,8 +243,10 @@ if (isMain) {
       console.log(JSON.stringify({ ok: false, error: "assessment-quality-blocked", quality, hint: "請補齊 assessment brief，或明確使用 --legacy 產出未驗證檔案。" }));
       process.exit(1);
     }
-    const result = await buildKahootWorkbook(quiz, output, { quality });
-    console.log(JSON.stringify({ ok: true, ...result, title: quiz.title }));
+    const result = await buildKahootWorkbook(quiz, output, { legacy });
+    const complete = result.questionCount === quiz.questions.length && result.questionCount > 0;
+    console.log(JSON.stringify({ ok: complete, status: complete ? "generated-review-required" : "partial", ...result, title: quiz.title }));
+    if (!complete) process.exitCode = 2;
   } catch (err) {
     console.log(
       JSON.stringify({

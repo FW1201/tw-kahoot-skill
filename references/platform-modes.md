@@ -6,3 +6,5 @@
 - 編輯器選擇題需輸入至少兩個答案並標示正解；儲存後讀回題目、正解及可見度。主持、指派與報告另外驗證，不由儲存成功推論。
 
 官方來源：https://support.kahoot.com/hc/en-us/articles/115002812547-How-to-import-questions-from-a-spreadsheet-to-your-kahoot 、https://support.kahoot.com/hc/en-us/articles/360056769373-How-to-import-slides （2026-11-26）。本次既有 Kahoot 登入分頁成功手動建立一題私人內容，儲存並讀回正解；學生端尚未測試。
+
+2026-11-26 官方匯入文件列出 5、10、20、30、60、120 秒；舊模板另列 90、240，發生衝突時本工具採用現行文件六種。是非題轉標準 Quiz、保留原選項；超長、超過四個選項的題目不截斷，標記跳過並須人工修訂。教師要求聚焦 Agent 內容轉換與匯入核對，不再以遊戲試玩為必要步驟。

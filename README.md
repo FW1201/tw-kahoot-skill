@@ -24,7 +24,7 @@ node scripts/build-xlsx.mjs quiz.json out.xlsx
 |---|---|
 | `out.xlsx` | 交由教師匯入的試算表。 |
 | `out.quality.json` | `status` 必須是 `ready`；看 `blockers`、`warnings`、`perQuestion` 與 `blueprint`。 |
-| `out.readiness.json` | 看每題是否 ready/skipped，以及截斷、媒體與時間等格式提醒。 |
+| `out.readiness.json` | 看每題是否 ready/skipped，以及超長、媒體與時間等格式提醒。 |
 
 ## 輸入與命題品質
 
@@ -41,7 +41,7 @@ node scripts/build-xlsx.mjs quiz.json out.xlsx
 
 ## Kahoot 匯入
 
-此工具只映射 `multiple_choice`、`multiple_select`、`true_false`。每題至少兩個、最多四個選項；題幹最多 120 字、選項最多 75 字；時間會調整至 5/10/20/30/60/90/120/240 秒。媒體與不支援題型必須在 Kahoot 編輯器手動補建；完整轉述 stdout 的 warnings。
+此工具只映射 `multiple_choice`、`multiple_select`、`true_false`。每題至少兩個、最多四個選項；題幹最多 120 字、選項最多 75 字；時間會調整至目前官方文件列出的 5/10/20/30/60/120 秒。超長題幹、選項或超過四個選項的題目跳過而不自動截斷；部分轉換回傳 `partial`、exit code 2，須檢查報告與原始教材。是非題轉成保留原選項的標準 Quiz，不是原生是非題；多選轉換需核對帳號與匯入結果。媒體與不支援題型必須在 Kahoot 編輯器手動補建；完整轉述 stdout 的 warnings。
 
 教師操作：Kahoot → Create → Add question → Import → Import spreadsheet → 先下載當日官方 template 比對 → 上傳 `out.xlsx` → 在未發布草稿中逐題預覽與修正 → 再由教師決定是否發布。`readiness.json` 會保留目前欄位是以仍在線的 2019 年官方範本為基礎的提醒；它不是對當日平台 UI 的保證。
 

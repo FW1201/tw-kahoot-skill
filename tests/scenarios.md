@@ -6,11 +6,11 @@
 
 1. **正常題目**：合法題目應無警告、`readiness.skippedQuestions` 為 0。
 2. **不支援題型**：`fill_blank` 等非 quiz 型別被跳過，`reason` 明確標註「quiz-only」。
-3. **超過 120 字題幹**：截斷至 120 字並警告（官方確認的硬限制，見 `references/platform-features.md`）。
-4. **超過 75 字答案**：截斷並警告。
+3. **超過 120 字題幹**：跳過並要求教師精簡核對（官方確認的硬限制，見 `references/platform-features.md`）。
+4. **超過 75 字答案**：跳過並要求教師精簡核對。
 5. **`multiple_select` 正解編碼**：正確編碼成逗號分隔的 1-indexed 編號（如 `"2,4"`）。
 6. **沒有正解被跳過**。
-7. **`true_false` 對映**：正確轉成 True/False 兩個答案列，正解編號正確。
+7. **`true_false` 對映**：保留來源的兩個答案標籤並轉成一般 Quiz，正解編號正確。
 8. **時間限制 snap**：非官方檔位的秒數會被調整到最接近的 `VALID_TIME_SECONDS` 檔位並警告。
 9. **信心提醒**：`readiness.checklist[0]` 一律包含「這是根據 2019 年官方範本、建議下一輪重新核對」的提醒字樣，防止未來改動不小心把這個提醒弄丟。
 
