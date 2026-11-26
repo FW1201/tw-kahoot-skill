@@ -52,7 +52,7 @@ description: Design and create source-traceable Kahoot interactive quizzes, slid
 
 ## Kahoot 提醒
 
-- 試算表僅映射 `multiple_choice`、`multiple_select`、`true_false`；每題至少兩個選項、最多四個，媒體須進編輯器補上。
+- 試算表僅映射 `multiple_choice`、`multiple_select`、`true_false`；每題至少兩個選項、最多四個，媒體須進編輯器補上。匯入後檢查編輯器原有空白預設題是否仍存在，逐題核對來源、正解與實際題數；不要把預設題誤認為匯入內容。
 - 題幹最多 120 字、選項最多 75 字；時間會調至官方文件列出的 5/10/20/30/60/120 秒之一。超長文字或選項超過四個的題目會跳過，不自動截斷；partial 與 exit code 2 表示尚需修改。是非題轉為保留原標籤的標準 Quiz，不是原生是非題；多選與特殊符號匯入及評分須逐題核對。完整轉述 warnings。
 - `readiness.json` 首項會提醒範本來源是仍在線的 2019 年官方檔。匯入前在 Kahoot 的 Import spreadsheet 畫面下載當日範本比對欄位。
 
