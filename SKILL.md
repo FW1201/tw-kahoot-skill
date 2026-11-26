@@ -1,7 +1,15 @@
 ---
 name: tw-kahoot-skill
-description: Use when a teacher needs a source-traceable, audience-aligned Kahoot spreadsheet import file, needs to assess whether quiz JSON is ready for Kahoot import, or needs a recorded, human-gated draft-import handoff with manual Google OAuth bootstrap.
+description: Design and create source-traceable Kahoot interactive quizzes, slides, or courses, prepare supported imports, and verify content through available browser tools.
 ---
+
+使用平台特有模式時，先查閱 [模式與驗證指引](references/platform-modes.md)。以 [教學 brief 範例](assets/lesson-brief-v1.example.json) 定義年級、來源、目標、活動、時間和玩家回饋；用既有 CLI 的 `lesson --input <brief.json>` 檢查時間及來源關聯，結果不取代教師審查。
+
+## 跨 Agent 環境與工具發現
+
+首次安裝前及需要外部平台操作前，執行 `node scripts/portable-core/agent-doctor.mjs --agent codex`；可將 codex 換為 claude、antigravity、opencode 或 other。診斷不會讀出或測試金鑰；unknown 不是可用。依診斷提示與當前 Agent 工具清單檢查 connector/MCP、權限、瀏覽器與登入，不能由本機 CLI 是否存在推論工具可用。詳見 [跨 Agent 與模式指引](references/portable-integration.md)。
+
+連接器與 MCP 路徑僅在當前工具庫確認操作、權限與使用者需求後使用；使用具體工具前確認其參數及輸出。原有下方 CLI 與人工流程、品質檢查及外部寫入限制仍適用於原工具；不能宣稱未測試的工具路徑已完成。完成後讀回並區分草稿、發布及分享狀態。
 
 # Kahoot 測驗匯入
 
@@ -14,7 +22,7 @@ description: Use when a teacher needs a source-traceable, audience-aligned Kahoo
 3. 執行 `node scripts/build-xlsx.mjs quiz.json out.xlsx`。
 4. 先讀 `out.quality.json`：`status: "ready"` 才能交付；逐題查看 `blockers`、`warnings`、`perQuestion` 和 `blueprint`。
 5. 再讀 `out.readiness.json` 與 stdout `warnings`：它處理的是 Kahoot 匯入格式、截斷與跳題風險，不取代內容審題。
-6. 教師自行在 Kahoot 建立未發布草稿匯入並核對預覽；不得聲稱已自動上傳、發布或指派。
+6. 依可用工具與使用者授權建立或匯入未發布草稿，核對題目、正解、預覽與可見度；只回報實際完成的上傳、發布或指派。
 
 ## assessment v1 契約
 

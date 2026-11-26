@@ -88,3 +88,13 @@ tw-edtech-kahoot plan --action quiz.import --resource CANARY-kahoot
 ```
 
 一般建立或編輯用 `--confirm-write`；發布、分享、直播、指派、報告與刪除還需 `plan` 回傳的 `--confirm-plan` 與 `--confirm-impact <action:resource>`。請依序錄製題庫盤點、XLSX 匯入、投影片匯入、草稿編輯、公開設定、分享、Live、Assign、報告、集合與刪除；每段採 Canary 資源並讀回結果，且不得錄入登入憑證、學生 email、作答或分享連結。
+
+## 跨 Agent 安裝診斷
+
+安裝前執行 `node scripts/portable-core/agent-doctor.mjs --agent codex`，其他 Agent 可替換為 `claude`、`antigravity`、`opencode` 或 `other`。診斷結果中的 unknown 需在實際 Agent 與平台確認；詳見 [跨 Agent 指引](references/portable-integration.md)。核心只提供診斷和路由建議，不會自動安裝、登入或執行平台操作。
+
+### 專案範圍安裝
+
+執行 `node scripts/portable-core/install.mjs --agent codex --project <專案目錄>` 預覽；確認結果後加 `--apply`，將完整 Skill 複製到該 Agent 專案技能目錄。已有同名 Skill 時停止，絕不覆蓋；需要同時安裝套件時加 `--with-deps`，使用 `npm ci --ignore-scripts`；完成後重新載入 Agent 並檢查技能發現。安裝器不修改 MCP 設定或登入。
+
+使用 `tw-edtech-kahoot runtime --inventory inventory.json` 將本次 Agent 發現的工具與替代能力送入 CLI，回報動作路由；此命令唯讀，不會替宿主呼叫 connector。工具可見不代表帳號權限已驗證。

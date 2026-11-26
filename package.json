@@ -1,6 +1,6 @@
 {
   "name": "tw-kahoot-skill",
-  "version": "0.2.0",
+  "version": "0.3.0-rc.1",
   "description": "Agent skill: build a Kahoot official spreadsheet-import file with an import-readiness report for Taiwanese K-12 teachers. No browser automation, no API — spreadsheet importer only.",
   "type": "module",
   "license": "MIT",
@@ -9,13 +9,18 @@
     "tw-edtech-kahoot": "scripts/tw-edtech-kahoot.mjs"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs scripts/portable-core/*.test.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "exceljs": "4.4.0",
-    "zod": "3.25.76"
+    "zod": "^4.6.7"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }
